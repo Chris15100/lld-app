@@ -16,7 +16,7 @@ if st.session_state["authenticated"]:
         st.markdown(f"✅ Connecté en tant que **{USERNAME}**")
         if st.button("🔓 Se déconnecter"):
             st.session_state["authenticated"] = False
-            st.experimental_rerun()
+            st.rerun()
 else:
     # Interface de connexion
     st.title("🔐 Connexion sécurisée")
@@ -27,7 +27,7 @@ else:
         if username_input == USERNAME and password_input == PASSWORD:
             st.session_state["authenticated"] = True
             st.success("Connexion réussie ✅")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Identifiants incorrects")
     st.stop()
