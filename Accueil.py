@@ -38,7 +38,7 @@ st.set_page_config(
 )
 
 # Chemin vers ton image
-image_path = "/Users/christophergallo/Desktop/Application perso/Logo/Doc1-1.png"
+image_path = "images/Doc1-1.png"
 
 # Lire l'image en base64
 def get_base64_of_bin_file(bin_file):
