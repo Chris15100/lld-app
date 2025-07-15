@@ -1,20 +1,24 @@
 import streamlit as st
 import pandas as pd
 import base64
+import os
 
 USERNAME = "coach"
 PASSWORD = "lld6900920252026"
 
+# Initialisation de la variable session_state 'authenticated'
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
+# Interface utilisateur si connecté
 if st.session_state["authenticated"]:
     with st.sidebar:
         st.markdown(f"✅ Connecté en tant que **{USERNAME}**")
         if st.button("🔓 Se déconnecter"):
             st.session_state["authenticated"] = False
-            st.rerun()  # ✅ version corrigée
+            st.experimental_rerun()
 else:
+    # Interface de connexion
     st.title("🔐 Connexion sécurisée")
     username_input = st.text_input("Nom d'utilisateur")
     password_input = st.text_input("Mot de passe", type="password")
@@ -23,11 +27,12 @@ else:
         if username_input == USERNAME and password_input == PASSWORD:
             st.session_state["authenticated"] = True
             st.success("Connexion réussie ✅")
-            st.rerun()  # ✅ version corrigée
+            st.experimental_rerun()
         else:
             st.error("Identifiants incorrects")
     st.stop()
 
+# Configuration de la page
 st.set_page_config(
     page_title="AMS",
     layout="wide",
@@ -37,10 +42,9 @@ st.set_page_config(
     }
 )
 
-# Chemin vers ton image
+# Chargement et affichage du logo
 image_path = "images/Doc1-1.png"
 
-# Lire l'image en base64
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
         data = f.read()
@@ -48,7 +52,6 @@ def get_base64_of_bin_file(bin_file):
 
 img_base64 = get_base64_of_bin_file(image_path)
 
-# CSS + HTML pour logo fixé en haut à droite, image en taille native
 html_code = f"""
 <style>
 .logo-top-right {{
@@ -73,8 +76,11 @@ st.markdown(html_code, unsafe_allow_html=True)
 
 st.title("GPS Brut")
 
-# Chargement du fichier Excel
-df = pd.read_excel("/Users/christophergallo/Desktop/Application perso/data/Données GPS Propres.xlsx")
+# CHEMIN RELATIF : place ton fichier Excel dans un dossier 'data' dans ton repo
+data_path = os.path.join("data", "Données GPS Propres.xlsx")
+
+# Chargement du fichier Excel (avec chemin relatif)
+df = pd.read_excel(data_path)
 
 # 1re ligne : Nom du joueur, Type, Période
 col1, col2, col3 = st.columns(3)
@@ -106,7 +112,7 @@ with col6:
     dates = df['Date'].dropna().unique().tolist()
     filtre_date = st.selectbox("Date", [""] + sorted(dates))
 
-# 🔹 Application des filtres sur le DataFrame
+# Application des filtres
 df_filtré = df.copy()
 
 if filtre_joueur:
@@ -122,7 +128,6 @@ if filtre_poste:
 if filtre_date:
     df_filtré = df_filtré[df_filtré['Date'] == filtre_date]
 
-# 🔹 Affichage
-st.subheader("")
-st.write(f"{len(df_filtré)}")
+# Affichage
+st.subheader(f"Résultats : {len(df_filtré)} lignes")
 st.dataframe(df_filtré)
