@@ -35,21 +35,14 @@ col1, col2 = st.columns([1, 2])
 with col1:
     chemin_photos = "Photos joueurs"
     image_trouvee = False
-
-    # Debug : afficher les fichiers présents
-    fichiers_dispo = os.listdir(chemin_photos)
-    st.write("📁 Fichiers présents :", fichiers_dispo)
-
     for ext in ['.jpg', '.jpeg', '.png']:
         chemin_img = os.path.join(chemin_photos, joueur_choisi + ext)
         if os.path.isfile(chemin_img):
             st.image(chemin_img, caption=joueur_choisi, width=200)
             image_trouvee = True
             break
-
     if not image_trouvee:
-        st.warning(f"📸 Aucune image trouvée pour : {joueur_choisi}")
-        st.text(f"Chemin testé : {chemin_img}")
+        st.warning("📸 Aucune image trouvée.")
 with col2:
     st.subheader(f"Informations sur {joueur_choisi}")
     for col in ['Poste', 'Date de naissance', 'Taille', 'Poids', 'Nationalité']:
