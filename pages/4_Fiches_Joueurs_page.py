@@ -113,7 +113,7 @@ df_pres.columns = df_pres.columns.str.strip()
 pres_f = df_pres[df_pres['Nom du joueur'] == joueur_choisi]
 st.subheader("Présences Entraînement")
 if not pres_f.empty:
-    cols = ['Nombre entrainements total','Présences','Absences','Blessures','Malade','Réserve','Sélections']
+    cols = ['Nombre entrainements total','Présences','Absences','Blessures','Malade','Réserve','Sélections', 'Réathlé']
     df_leg = pres_f[cols].copy()
     header = "| " + " | ".join(cols) + " |"
     sep = "| " + " | ".join(["---"]*len(cols)) + " |"
