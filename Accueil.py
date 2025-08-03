@@ -43,7 +43,7 @@ st.set_page_config(
 )
 
 # Chargement et affichage du logo
-image_path = "images/Doc1-1.png"
+image_path = "images/logo.png"
 
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
@@ -77,7 +77,7 @@ st.markdown(html_code, unsafe_allow_html=True)
 st.title("GPS Brut")
 
 # CHEMIN RELATIF : place ton fichier Excel dans un dossier 'data' dans ton repo
-data_path = os.path.join("data", "Données GPS Propres.xlsx")
+data_path = os.path.join("data", "DonneesGPSPropres.xlsx")
 
 # Chargement du fichier Excel (avec chemin relatif)
 df = pd.read_excel(data_path)
