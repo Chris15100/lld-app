@@ -2,7 +2,7 @@ import streamlit as st
 import base64
 
 # Chemin vers ton image
-image_path = "/Users/christophergallo/Desktop/Application perso/Logo/Doc1-1.png"
+image_path = "images/logo.png"
 
 # Lire l'image en base64
 def get_base64_of_bin_file(bin_file):
