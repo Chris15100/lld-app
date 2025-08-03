@@ -1,10 +1,9 @@
 import streamlit as st
 import base64
 
-# Chemin vers ton image
-image_path = "/Users/christophergallo/Desktop/Application perso/Logo/Doc1-1.png"
+# Chemin relatif vers l'image dans ton projet (assure-toi que l'image existe ici)
+image_path = "images/logo.png"
 
-# Lire l'image en base64
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
         data = f.read()
@@ -12,7 +11,6 @@ def get_base64_of_bin_file(bin_file):
 
 img_base64 = get_base64_of_bin_file(image_path)
 
-# CSS + HTML pour logo fixé en haut à droite, image en taille native
 html_code = f"""
 <style>
 .logo-top-right {{
