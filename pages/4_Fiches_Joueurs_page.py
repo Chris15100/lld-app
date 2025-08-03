@@ -68,7 +68,7 @@ df_joueur = df_fiche_joueur[df_fiche_joueur['Nom du joueur'] == joueur_choisi]
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    chemin_photos = "/Users/christophergallo/Desktop/Application perso/Photos joueurs"
+    chemin_photos = "Photos_joueurs"
     image_trouvée = False
     for ext in ['.jpg', '.jpeg', '.png']:
         chemin_image = os.path.join(chemin_photos, joueur_choisi + ext)
@@ -100,7 +100,7 @@ with col2:
 
 
 # 📂 Chargement du nouveau fichier Excel
-df_stats_joueur = pd.read_excel("/Users/christophergallo/Desktop/Application perso/data/Temps de jeu.xlsx", index_col=None)
+df_stats_joueur = pd.read_excel("data/Temps de jeu.xlsx", index_col=None)
 
 # 🧼 Nettoyage des colonnes si nécessaire
 df_stats_joueur.columns = df_stats_joueur.columns.str.strip()
