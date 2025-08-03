@@ -5,7 +5,7 @@ import os
 
 # ✅ Chemins relatifs (vers ton dépôt GitHub)
 image_path = "images/logo.png"  # Déplace Doc1-1.png ici et renomme en logo.png
-excel_path = "data/Donnees_GPS_Propres.xlsx"  # Renomme le fichier Excel sans accents ni espaces
+excel_path = "data/DonneesGPSPropres.xlsx"  # Renomme le fichier Excel sans accents ni espaces
 
 # ✅ Fonction avec vérification
 def get_base64_of_bin_file(bin_file):
