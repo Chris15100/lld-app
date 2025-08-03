@@ -46,7 +46,7 @@ st.markdown(html_code, unsafe_allow_html=True)
 st.title("Fiches Joueurs")
 
 # 📂 Chargement des données
-df_fiche_joueur = pd.read_excel("/Users/christophergallo/Desktop/Application perso/data/Informations joueurs.xlsx")
+df_fiche_joueur = pd.read_excel("data/Informations joueurs.xlsx")
 
 # 🧼 Nettoyage du nom des colonnes
 df_fiche_joueur.columns = df_fiche_joueur.columns.str.strip()
