@@ -33,7 +33,7 @@ df_joueur = df_fiche_joueur[df_fiche_joueur['Nom du joueur'] == joueur_choisi]
 
 col1, col2 = st.columns([1, 2])
 with col1:
-    chemin_photos = "Photos_joueurs"
+    chemin_photos = "Photos joueurs"
     image_trouvee = False
 
     # Debug : afficher les fichiers présents
