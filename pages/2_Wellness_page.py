@@ -34,6 +34,8 @@ html_code = f"""
 
 st.markdown(html_code, unsafe_allow_html=True)
 
+st.title("Wellness/RPE")
+
 excel = pd.read_excel("Wellness.xlsx")
 
 st.dataframe(excel)
