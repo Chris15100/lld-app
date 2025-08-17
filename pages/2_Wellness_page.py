@@ -1,5 +1,6 @@
 import streamlit as st
 import base64
+import pandas as pd
 
 # Chemin relatif vers l'image dans ton projet (assure-toi que l'image existe ici)
 image_path = "images/logo.png"
@@ -32,3 +33,7 @@ html_code = f"""
 """
 
 st.markdown(html_code, unsafe_allow_html=True)
+
+excel = pd.read_excel("Wellness.xlsx")
+
+st.dataframe(excel)
