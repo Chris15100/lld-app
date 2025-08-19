@@ -50,37 +50,50 @@ def get_base64_of_bin_file(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-img_base64 = get_base64_of_bin_file(image_path)
-
-html_code = f"""
-<style>
-.logo-top-right {{
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 9999;
-    max-width: 150px;
-}}
-.logo-top-right img {{
-    width: 100%;
-    height: auto;
-    display: block;
-}}
-</style>
-<div class="logo-top-right">
-    <img src="data:image/png;base64,{img_base64}" />
-</div>
-"""
-
-st.markdown(html_code, unsafe_allow_html=True)
+# Vérification si le logo existe
+if os.path.exists(image_path):
+    img_base64 = get_base64_of_bin_file(image_path)
+    html_code = f"""
+    <style>
+    .logo-top-right {{
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+        max-width: 150px;
+    }}
+    .logo-top-right img {{
+        width: 100%;
+        height: auto;
+        display: block;
+    }}
+    </style>
+    <div class="logo-top-right">
+        <img src="data:image/png;base64,{img_base64}" />
+    </div>
+    """
+    st.markdown(html_code, unsafe_allow_html=True)
 
 st.title("GPS Brut")
 
 # CHEMIN RELATIF : place ton fichier Excel dans un dossier 'data' dans ton repo
 data_path = os.path.join("data", "DonneesGPSPropres.xlsx")
 
-# Chargement du fichier Excel (avec chemin relatif)
+# Vérification si le fichier existe
+if not os.path.exists(data_path):
+    st.error(f"⚠️ Le fichier {data_path} est introuvable. Vérifie qu'il est bien dans le dossier 'data'.")
+    st.stop()
+
+# Chargement du fichier Excel
 df = pd.read_excel(data_path)
+
+# Vérification des colonnes attendues
+colonnes_attendues = ["Nom du joueur", "Type", "Période", "MD", "Poste", "Date"]
+colonnes_manquantes = [col for col in colonnes_attendues if col not in df.columns]
+
+if colonnes_manquantes:
+    st.error(f"⚠️ Colonnes manquantes dans ton Excel : {colonnes_manquantes}")
+    st.stop()
 
 # 1re ligne : Nom du joueur, Type, Période
 col1, col2, col3 = st.columns(3)

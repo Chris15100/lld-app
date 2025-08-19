@@ -4,8 +4,8 @@ import base64
 import os
 
 # ✅ Chemins relatifs (vers ton dépôt GitHub)
-image_path = "images/logo.png"  # Déplace Doc1-1.png ici et renomme en logo.png
-excel_path = "data/DonneesGPSPropres.xlsx"  # Renomme le fichier Excel sans accents ni espaces
+image_path = "images/logo.png"  
+excel_path = "data/DonneesGPSPropres.xlsx"  
 
 # ✅ Fonction avec vérification
 def get_base64_of_bin_file(bin_file):
@@ -51,6 +51,10 @@ if not os.path.exists(excel_path):
 
 df = pd.read_excel(excel_path)
 
+# 🔹 Conversion et formatage des dates
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+df["Date_str"] = df["Date"].dt.strftime("%d/%m/%Y")  # format JJ/MM/AAAA
+
 # 🔹 Filtres
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -75,7 +79,7 @@ with col5:
     filtre_poste = st.selectbox("Poste", [""] + sorted(postes))
 
 with col6:
-    dates = df['Date'].dropna().unique().tolist()
+    dates = df['Date_str'].dropna().unique().tolist()
     filtre_date = st.selectbox("Date", [""] + sorted(dates))
 
 # 🔹 Application des filtres
@@ -92,10 +96,15 @@ if filtre_md:
 if filtre_poste:
     df_filtré = df_filtré[df_filtré['Poste'] == filtre_poste]
 if filtre_date:
-    df_filtré = df_filtré[df_filtré['Date'] == filtre_date]
+    df_filtré = df_filtré[df_filtré["Date_str"] == filtre_date]
+
+# 🔹 Préparation affichage final
+df_affichage = df_filtré.copy()
+df_affichage["Date"] = df_affichage["Date"].dt.strftime("%d/%m/%Y")
 
 # 🔹 Affichage
 st.subheader("")
-st.write(f"{len(df_filtré)} lignes affichées")
-st.dataframe(df_filtré)
+st.write(f"{len(df_affichage)} lignes affichées")
+st.dataframe(df_affichage)
+
 
