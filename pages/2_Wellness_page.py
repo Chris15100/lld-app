@@ -36,6 +36,29 @@ st.markdown(html_code, unsafe_allow_html=True)
 
 st.title("Wellness/RPE")
 
-excel = pd.read_excel("data/Wellness.xlsx")
+# 🔥 Ici on utilise df et pas excel
+df = pd.read_excel("data/Wellness.xlsx")
 
-st.dataframe(excel)
+# 1re ligne : Nom du joueur, Date
+col1, col2 = st.columns(2)
+
+with col1:
+    joueurs = df['Nom du joueur'].dropna().unique().tolist()
+    filtre_joueur = st.multiselect("Nom du joueur", sorted(joueurs))
+
+with col2:
+    dates = df['Date'].dropna().unique().tolist()
+    filtre_date = st.selectbox("Date", [""] + sorted(dates))
+
+# Application des filtres
+df_filtré = df.copy()
+
+if filtre_joueur:
+    df_filtré = df_filtré[df_filtré['Nom du joueur'].isin(filtre_joueur)]
+    
+if filtre_date:
+    df_filtré = df_filtré[df_filtré['Date'] == filtre_date]
+
+# Affichage
+st.subheader(f"Résultats : {len(df_filtré)} lignes")
+st.dataframe(df_filtré)
