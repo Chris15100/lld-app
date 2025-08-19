@@ -135,5 +135,15 @@ if filtre_date:
     df_filtré = df_filtré[df_filtré['Date_str'] == filtre_date]
 
 # ✅ Affichage du tableau avec la date formatée
-st.subheader(f"Résultats : {len(df_filtré)} lignes")
-st.dataframe(df_filtré.drop(columns=["Date"]).rename(columns={"Date_str": "Date"}))
+# ✅ Affichage du tableau avec la date formatée (au bon endroit)
+df_affichage = df_filtré.copy()
+
+# On remplace la colonne Date par sa version formatée
+df_affichage["Date"] = df_affichage["Date"].dt.strftime("%d/%m/%Y")
+
+# On conserve l'ordre original des colonnes
+colonnes = [col for col in df.columns if col != "Date"]  # ordre original sauf l'ancienne
+colonnes.insert(df.columns.get_loc("Date"), "Date")      # remettre Date à sa place initiale
+
+st.subheader(f"Résultats : {len(df_affichage)} lignes")
+st.dataframe(df_affichage[colonnes])
