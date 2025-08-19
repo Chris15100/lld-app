@@ -115,8 +115,8 @@ with col5:
     filtre_poste = st.selectbox("Poste", [""] + sorted(postes))
 
 with col6:
-    dates = df['Date_str'].dropna().unique().tolist()
-    filtre_date = st.selectbox("Date", [""] + sorted(dates))
+    dates = df['Date'].dropna().sort_values().unique().tolist()
+    filtre_date = st.selectbox("Date", [""] + [d.strftime("%d/%m/%Y") for d in dates])
 
 # Application des filtres
 df_filtré = df.copy()
@@ -132,7 +132,8 @@ if filtre_md:
 if filtre_poste:
     df_filtré = df_filtré[df_filtré['Poste'] == filtre_poste]
 if filtre_date:
-    df_filtré = df_filtré[df_filtré['Date_str'] == filtre_date]
+    filtre_date_dt = pd.to_datetime(filtre_date, format="%d/%m/%Y")
+    df_filtré = df_filtré[df_filtré['Date'] == filtre_date_dt]
 
 # ✅ Affichage du tableau avec la date formatée
 # ✅ Affichage du tableau avec la date formatée (au bon endroit)
