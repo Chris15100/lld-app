@@ -50,8 +50,8 @@ with col1:
     filtre_joueur = st.multiselect("Nom du joueur", sorted(joueurs))
 
 with col2:
-    dates = df['Date'].dropna().dt.strftime("%d/%m/%Y").unique().tolist()
-    filtre_date = st.selectbox("Date", [""] + sorted(dates))
+    dates = df['Date'].dropna().sort_values().unique().tolist()
+    filtre_date = st.selectbox("Date", [""] + [d.strftime("%d/%m/%Y") for d in dates])
 
 # Application des filtres
 df_filtré = df.copy()
@@ -60,7 +60,8 @@ if filtre_joueur:
     df_filtré = df_filtré[df_filtré['Nom du joueur'].isin(filtre_joueur)]
 
 if filtre_date:
-    df_filtré = df_filtré[df_filtré["Date"].dt.strftime("%d/%m/%Y") == filtre_date]
+    filtre_date_dt = pd.to_datetime(filtre_date, format="%d/%m/%Y")
+    df_filtré = df_filtré[df_filtré['Date'] == filtre_date_dt]
 
 # Préparer l'affichage final (dates formatées)
 df_affichage = df_filtré.copy()
