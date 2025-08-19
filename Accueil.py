@@ -50,50 +50,43 @@ def get_base64_of_bin_file(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-# Vérification si le logo existe
-if os.path.exists(image_path):
-    img_base64 = get_base64_of_bin_file(image_path)
-    html_code = f"""
-    <style>
-    .logo-top-right {{
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        z-index: 9999;
-        max-width: 150px;
-    }}
-    .logo-top-right img {{
-        width: 100%;
-        height: auto;
-        display: block;
-    }}
-    </style>
-    <div class="logo-top-right">
-        <img src="data:image/png;base64,{img_base64}" />
-    </div>
-    """
-    st.markdown(html_code, unsafe_allow_html=True)
+img_base64 = get_base64_of_bin_file(image_path)
+
+html_code = f"""
+<style>
+.logo-top-right {{
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 9999;
+    max-width: 150px;
+}}
+.logo-top-right img {{
+    width: 100%;
+    height: auto;
+    display: block;
+}}
+</style>
+<div class="logo-top-right">
+    <img src="data:image/png;base64,{img_base64}" />
+</div>
+"""
+
+st.markdown(html_code, unsafe_allow_html=True)
 
 st.title("GPS Brut")
 
 # CHEMIN RELATIF : place ton fichier Excel dans un dossier 'data' dans ton repo
 data_path = os.path.join("data", "DonneesGPSPropres.xlsx")
 
-# Vérification si le fichier existe
-if not os.path.exists(data_path):
-    st.error(f"⚠️ Le fichier {data_path} est introuvable. Vérifie qu'il est bien dans le dossier 'data'.")
-    st.stop()
-
 # Chargement du fichier Excel
 df = pd.read_excel(data_path)
 
-# Vérification des colonnes attendues
-colonnes_attendues = ["Nom du joueur", "Type", "Période", "MD", "Poste", "Date"]
-colonnes_manquantes = [col for col in colonnes_attendues if col not in df.columns]
+# ✅ Conversion de la colonne Date au format datetime
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-if colonnes_manquantes:
-    st.error(f"⚠️ Colonnes manquantes dans ton Excel : {colonnes_manquantes}")
-    st.stop()
+# ✅ Création d'une colonne texte formatée pour l'affichage
+df["Date_str"] = df["Date"].dt.strftime("%d/%m/%Y")
 
 # 1re ligne : Nom du joueur, Type, Période
 col1, col2, col3 = st.columns(3)
@@ -122,7 +115,7 @@ with col5:
     filtre_poste = st.selectbox("Poste", [""] + sorted(postes))
 
 with col6:
-    dates = df['Date'].dropna().unique().tolist()
+    dates = df['Date_str'].dropna().unique().tolist()
     filtre_date = st.selectbox("Date", [""] + sorted(dates))
 
 # Application des filtres
@@ -139,8 +132,8 @@ if filtre_md:
 if filtre_poste:
     df_filtré = df_filtré[df_filtré['Poste'] == filtre_poste]
 if filtre_date:
-    df_filtré = df_filtré[df_filtré['Date'] == filtre_date]
+    df_filtré = df_filtré[df_filtré['Date_str'] == filtre_date]
 
-# Affichage
+# ✅ Affichage du tableau avec la date formatée
 st.subheader(f"Résultats : {len(df_filtré)} lignes")
-st.dataframe(df_filtré)
+st.dataframe(df_filtré.drop(columns=["Date"]).rename(columns={"Date_str": "Date"}))
