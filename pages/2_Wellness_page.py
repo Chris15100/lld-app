@@ -1,6 +1,7 @@
 import streamlit as st
 import base64
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # Chemin relatif vers l'image dans ton projet (assure-toi que l'image existe ici)
 image_path = "images/logo.png"
@@ -71,3 +72,15 @@ df_affichage["Date"] = df_affichage["Date"].dt.strftime("%d/%m/%Y")
 st.subheader(f"Résultats : {len(df_affichage)} lignes")
 st.dataframe(df_affichage)
 
+# On calcule la moyenne de la charge par date
+df_moyenne = df_filtre.groupby("Date", as_index=False)["Charge"].mean()
+
+# Création du graphique
+fig, ax = plt.subplots()
+ax.bar(df_moyenne["Date"].dt.strftime("%d/%m/%Y"), df_moyenne["Charge"])
+ax.set_xlabel("Date")
+ax.set_ylabel("Charge moyenne")
+ax.set_title("Évolution de la charge moyenne")
+
+# Affichage dans Streamlit
+st.pyplot(fig)
