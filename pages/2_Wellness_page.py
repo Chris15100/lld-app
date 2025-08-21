@@ -101,4 +101,9 @@ fig = px.bar(
     title="Évolution de la charge moyenne (avec jours)"
 )
 
+# Inclinaison des labels en X
+fig.update_layout(
+    xaxis=dict(tickangle=-45)  # -45° pour lisibilité
+)
+
 st.plotly_chart(fig, use_container_width=True)
