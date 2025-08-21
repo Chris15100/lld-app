@@ -78,6 +78,11 @@ else:
 # --- Tableau ---
 df_affichage = df_filtré.copy()
 df_affichage["Date"] = df_affichage["Date"].dt.strftime("%d/%m/%Y")
+
+# ❌ On enlève la colonne "Semaine" de l'affichage
+if "Semaine" in df_affichage.columns:
+    df_affichage = df_affichage.drop(columns=["Semaine"])
+
 st.subheader(f"Résultats : {len(df_affichage)} lignes")
 st.dataframe(df_affichage)
 
@@ -120,4 +125,5 @@ if not df_filtré.empty:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("Aucune donnée correspondant aux filtres.")
+
 
