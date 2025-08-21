@@ -73,7 +73,7 @@ st.subheader(f"Résultats : {len(df_affichage)} lignes")
 st.dataframe(df_affichage)
 
 # On calcule la moyenne de la charge par date
-df_moyenne = df_filtre.groupby("Date", as_index=False)["Charge"].mean()
+df_moyenne = df_filtré.groupby("Date", as_index=False)["Charge"].mean()
 
 # Création du graphique
 fig, ax = plt.subplots()
