@@ -72,6 +72,8 @@ if filtre_date:
 if filtre_semaine:
     filtre_semaine_dt = [pd.to_datetime(s.split("du ")[1], format="%d/%m/%Y") for s in filtre_semaine]
     df_filtré = df_filtré[df_filtré["Semaine"].isin(filtre_semaine_dt)]
+else:
+    filtre_semaine_dt = []
 
 # --- Tableau ---
 df_affichage = df_filtré.copy()
@@ -81,14 +83,21 @@ st.dataframe(df_affichage)
 
 # --- Graphique (unique, en dessous du tableau) ---
 if not df_filtré.empty:
-    # Définir la plage de dates complète (avec jours manquants inclus)
-    all_dates = pd.date_range(df_filtré["Date"].min(), df_filtré["Date"].max(), freq="D")
+    # ✅ Si filtre semaine → on affiche lundi à dimanche
+    if filtre_semaine_dt:
+        lundi = filtre_semaine_dt[0]
+        dimanche = lundi + pd.Timedelta(days=6)
+        all_dates = pd.date_range(lundi, dimanche, freq="D")
+    else:
+        # Sinon on affiche la plage min → max des données filtrées
+        all_dates = pd.date_range(df_filtré["Date"].min(), df_filtré["Date"].max(), freq="D")
+
     df_all = pd.DataFrame({"Date": all_dates})
 
     # Moyenne par date
     df_moyenne = df_filtré.groupby("Date", as_index=False)["Charge"].mean()
 
-    # Fusion pour inclure toutes les dates (jours sans données → 0)
+    # Fusion → inclure toutes les dates (jours sans données = 0)
     df_plot = df_all.merge(df_moyenne, on="Date", how="left").fillna(0)
 
     # Ajout du jour de la semaine
@@ -107,7 +116,8 @@ if not df_filtré.empty:
         title="Évolution de la charge moyenne"
     )
 
-    fig.update_layout(xaxis=dict(tickangle=-45))  # Labels inclinés
+    fig.update_layout(xaxis=dict(tickangle=-45))
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("Aucune donnée correspondant aux filtres.")
+
