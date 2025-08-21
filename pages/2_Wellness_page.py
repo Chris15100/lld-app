@@ -43,8 +43,13 @@ df = pd.read_excel("data/Wellness.xlsx")
 # Conversion explicite de la colonne Date
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-# 1re ligne : Nom du joueur, Date
-col1, col2 = st.columns(2)
+# Assurons-nous que la colonne Date est bien en datetime
+df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y")
+
+# Création d'une colonne "Semaine" qui prend le lundi de chaque semaine
+df["Semaine"] = df["Date"] - pd.to_timedelta(df["Date"].dt.weekday, unit="D")
+
+col1, col2, col3 = st.columns(3)
 
 with col1:
     joueurs = df['Nom du joueur'].dropna().unique().tolist()
@@ -52,7 +57,11 @@ with col1:
 
 with col2:
     dates = df['Date'].dropna().sort_values().unique().tolist()
-    filtre_date = st.selectbox("Date", [""] + [d.strftime("%d/%m/%Y") for d in dates])
+    filtre_date = st.multiselect("Dates", [d.strftime("%d/%m/%Y") for d in dates])
+
+with col3:
+    semaines = df["Semaine"].dropna().sort_values().unique().tolist()
+    filtre_semaine = st.multiselect("Semaines (lundi)", [s.strftime("Semaine du %d/%m/%Y") for s in semaines])
 
 # Application des filtres
 df_filtré = df.copy()
@@ -62,7 +71,11 @@ if filtre_joueur:
 
 if filtre_date:
     filtre_date_dt = pd.to_datetime(filtre_date, format="%d/%m/%Y")
-    df_filtré = df_filtré[df_filtré['Date'] == filtre_date_dt]
+    df_filtré = df_filtré[df_filtré['Date'].isin(filtre_date_dt)]
+
+if filtre_semaine:
+    filtre_semaine_dt = [pd.to_datetime(s.split("du ")[1], format="%d/%m/%Y") for s in filtre_semaine]
+    df_filtré = df_filtré[df_filtré["Semaine"].isin(filtre_semaine_dt)]
 
 # Préparer l'affichage final (dates formatées)
 df_affichage = df_filtré.copy()
