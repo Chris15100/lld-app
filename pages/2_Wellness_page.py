@@ -46,7 +46,7 @@ df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 # Assurons-nous que la colonne Date est bien en datetime
 df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y")
 
-# Création d'une colonne "Semaine" qui prend le lundi de chaque semaine
+# Création d'une colonne "Semaine" = lundi de la semaine correspondante
 df["Semaine"] = df["Date"] - pd.to_timedelta(df["Date"].dt.weekday, unit="D")
 
 col1, col2, col3 = st.columns(3)
@@ -76,6 +76,41 @@ if filtre_date:
 if filtre_semaine:
     filtre_semaine_dt = [pd.to_datetime(s.split("du ")[1], format="%d/%m/%Y") for s in filtre_semaine]
     df_filtré = df_filtré[df_filtré["Semaine"].isin(filtre_semaine_dt)]
+
+    # 🔹 Inclure toutes les dates de chaque semaine sélectionnée
+    all_dates = []
+    for lundi in filtre_semaine_dt:
+        semaine_complète = pd.date_range(lundi, lundi + pd.Timedelta(days=6), freq="D")
+        all_dates.extend(semaine_complète)
+
+    all_dates = pd.DataFrame({"Date": pd.to_datetime(all_dates)})
+
+    # Moyenne par date
+    df_moyenne = df_filtré.groupby("Date", as_index=False)["Charge"].mean()
+
+    # Fusion pour inclure toutes les dates (remplit NaN par 0)
+    df_plot = all_dates.merge(df_moyenne, on="Date", how="left").fillna(0)
+
+    # Ajout du jour de la semaine
+    jours = {
+        0: "Lundi", 1: "Mardi", 2: "Mercredi", 3: "Jeudi",
+        4: "Vendredi", 5: "Samedi", 6: "Dimanche"
+    }
+    df_plot["JourDate"] = df_plot["Date"].dt.weekday.map(jours) + " " + df_plot["Date"].dt.strftime("%d/%m/%Y")
+
+    # Graphique interactif
+    fig = px.bar(
+        df_plot,
+        x="JourDate",
+        y="Charge",
+        labels={"Charge": "Charge moyenne", "JourDate": "Date"},
+        title="Charge moyenne par semaine sélectionnée"
+    )
+
+    # Inclinaison des labels
+    fig.update_layout(xaxis=dict(tickangle=-45))
+
+    st.plotly_chart(fig, use_container_width=True)
 
 # Préparer l'affichage final (dates formatées)
 df_affichage = df_filtré.copy()
