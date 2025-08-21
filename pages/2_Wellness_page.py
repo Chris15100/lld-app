@@ -72,16 +72,33 @@ df_affichage["Date"] = df_affichage["Date"].dt.strftime("%d/%m/%Y")
 st.subheader(f"Résultats : {len(df_affichage)} lignes")
 st.dataframe(df_affichage)
 
+# Assurons-nous que la colonne Date est bien en datetime
+df_filtré["Date"] = pd.to_datetime(df_filtré["Date"], format="%d/%m/%Y")
+
+# On définit la plage de dates complète (du min au max de ton filtre)
+all_dates = pd.date_range(df_filtré["Date"].min(), df_filtré["Date"].max(), freq="D")
+df_all = pd.DataFrame({"Date": all_dates})
+
 # Moyenne par date
 df_moyenne = df_filtré.groupby("Date", as_index=False)["Charge"].mean()
 
+# Jointure pour inclure toutes les dates (remplit NaN par 0)
+df_plot = df_all.merge(df_moyenne, on="Date", how="left").fillna(0)
+
+# Ajout du jour de la semaine en français + format
+jours = {
+    0: "Lundi", 1: "Mardi", 2: "Mercredi", 3: "Jeudi",
+    4: "Vendredi", 5: "Samedi", 6: "Dimanche"
+}
+df_plot["JourDate"] = df_plot["Date"].dt.weekday.map(jours) + " " + df_plot["Date"].dt.strftime("%d/%m/%Y")
+
 # Graphique interactif
 fig = px.bar(
-    df_moyenne,
-    x=df_moyenne["Date"].dt.strftime("%d/%m/%Y"),
+    df_plot,
+    x="JourDate",
     y="Charge",
-    labels={"Charge": "Charge moyenne", "Date": "Date"},
-    title="Évolution de la charge moyenne"
+    labels={"Charge": "Charge moyenne", "JourDate": "Date"},
+    title="Évolution de la charge moyenne (avec jours)"
 )
 
 st.plotly_chart(fig, use_container_width=True)
