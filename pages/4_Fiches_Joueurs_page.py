@@ -192,11 +192,45 @@ if not df_stats_f.empty:
 
     df_buts_passes = pd.DataFrame(data, columns=["Compétition", "Buts", "Passes D"])
 
-    # Affichage sans numéro de ligne
-    st.markdown(df_buts_passes.to_html(index=False), unsafe_allow_html=True)
+    # --- CSS custom pour styliser le tableau ---
+    table_style = """
+    <style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        font-family: "Arial", sans-serif;
+    }
+    thead {
+        background-color: #f8f9fa;
+    }
+    th, td {
+        padding: 10px 16px;
+        text-align: center;
+        border-bottom: 1px solid #ddd;
+    }
+    th {
+        font-weight: 600;
+        font-size: 15px;
+        color: #333;
+    }
+    tr:hover {
+        background-color: #f1f3f4;
+    }
+    </style>
+    """
+
+    # Conversion du DataFrame en HTML sans index
+    table_html = df_buts_passes.to_html(index=False, escape=False)
+
+    # Injection dans Streamlit
+    st.markdown(table_style + table_html, unsafe_allow_html=True)
 
 else:
     st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
+
 
 
 
