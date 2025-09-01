@@ -169,39 +169,31 @@ with col2:
 
 
 
-# --- Tableau Buts et Passes Décisives ---
-st.subheader("Statistiques offensives")
+# --- Statistiques Buts et Passes D ---
+st.subheader("Statistiques Buts & Passes Décisives")
 
 if not df_stats_f.empty:
-    # Colonnes à récupérer
-    cols_buts_passes = [
-        "Nombre buts Total",
-        "Nombre buts N3",
-        "Nombre buts CDF",
-        "Nombre buts Réserve",
-        "Nombre buts amicaux",
-        "Nombre passes D Total",
-        "Nombre passes D N3",
-        "Nombre passes D CDF",
-        "Nombre passes D Réserve",
-        "Nombre passes D amicaux"
-    ]
+    stats_cols = {
+        "Total": ["Buts Total", "Passes D Total"],
+        "N3": ["Buts N3", "Passes D N3"],
+        "CDF": ["Buts CDF", "Passes D CDF"],
+        "Réserve": ["Buts Réserve", "Passes D Réserve"],
+        "Amicaux": ["Buts Matchs Amicaux", "Passes D Matchs Amicaux"]
+    }
 
-    # On garde seulement celles qui existent dans le fichier
-    existing_cols = [c for c in cols_buts_passes if c in df_stats_f.columns]
+    data = []
+    for comp, cols in stats_cols.items():
+        buts = int(df_stats_f[cols[0]].sum())
+        passes = int(df_stats_f[cols[1]].sum())
+        data.append([comp, buts, passes])
 
-    if existing_cols:
-        df_buts_passes = df_stats_f[existing_cols].copy()
+    df_buts_passes = pd.DataFrame(data, columns=["Compétition", "Buts", "Passes D"])
 
-        # Supprimer l’index avant affichage
-        df_buts_passes = df_buts_passes.reset_index(drop=True)
+    st.dataframe(df_buts_passes, use_container_width=True)
 
-        # Afficher le tableau
-        st.table(df_buts_passes)
-    else:
-        st.info("ℹ️ Aucune statistique de buts/passes décisives disponible pour ce joueur.")
 else:
     st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
+
 
 
 
