@@ -188,6 +188,7 @@ if not df_stats_f.empty:
         data.append([comp, buts, passes])
 
     df_buts_passes = pd.DataFrame(data, columns=["Compétition", "Buts", "Passes D"])
+    df_buts_passes = df_buts_passes.reset_index(drop=True)
 
     st.dataframe(df_buts_passes, use_container_width=True)
 
