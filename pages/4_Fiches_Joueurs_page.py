@@ -189,11 +189,12 @@ if not df_stats_f.empty:
 
     df_buts_passes = pd.DataFrame(data, columns=["Compétition", "Buts", "Passes D"])
 
-    # Affichage SANS index avec st.table
+    # Tableau propre sans index/numéros de ligne
     st.table(df_buts_passes)
 
 else:
     st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
+
 
 
 
