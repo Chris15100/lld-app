@@ -169,7 +169,15 @@ with col2:
 
 
 
-# --- Statistiques Buts et Passes D ---
+# CSS pour masquer l'index/numéro de ligne dans st.dataframe
+hide_dataframe_row_index = """
+    <style>
+    .row_heading.level0 {display:none}
+    .blank {display:none}
+    </style>
+"""
+st.markdown(hide_dataframe_row_index, unsafe_allow_html=True)
+
 st.subheader("Statistiques Buts & Passes Décisives")
 
 if not df_stats_f.empty:
@@ -189,8 +197,8 @@ if not df_stats_f.empty:
 
     df_buts_passes = pd.DataFrame(data, columns=["Compétition", "Buts", "Passes D"])
 
-    # Tableau SANS index ni numéros de ligne
-    st.table(df_buts_passes)
+    # Tableau interactif sans la colonne d’index
+    st.dataframe(df_buts_passes, use_container_width=True)
 
 else:
     st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
