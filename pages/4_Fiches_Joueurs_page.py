@@ -133,10 +133,20 @@ else:
 st.subheader("Répartition des matchs de N3")
 
 if not df_stats_f.empty:
-    tit = int(df_leg['Nombre de Titularisation N3'].sum())
-    entree = int(df_leg['Entrée en jeu N3'].sum())
-    non_entree = int(df_leg['Non entrée en jeu N3'].sum())  # ⚠️ vérifier nom exact de ta colonne
-    hors_groupe = int(df_leg['Hors groupe N3'].sum())
+    # Vérification robuste des colonnes
+    def get_col(df, search):
+        cols = [c for c in df.columns if search in c]
+        return cols[0] if cols else None
+
+    tit_col = get_col(df_leg, "Nombre de Titularisation N3")
+    entree_col = get_col(df_leg, "Entrée en jeu N3")
+    non_entree_col = get_col(df_leg, "Non entrée en jeu N3")
+    hors_groupe_col = get_col(df_leg, "Hors groupe N3")
+
+    tit = int(df_leg[tit_col].sum()) if tit_col else 0
+    entree = int(df_leg[entree_col].sum()) if entree_col else 0
+    non_entree = int(df_leg[non_entree_col].sum()) if non_entree_col else 0
+    hors_groupe = int(df_leg[hors_groupe_col].sum()) if hors_groupe_col else 0
 
     labels = ["Titularisations", "Entrées en jeu", "Non-entrées en jeu", "Hors groupe"]
     values = [tit, entree, non_entree, hors_groupe]
@@ -148,6 +158,7 @@ if not df_stats_f.empty:
     )
     fig.update_traces(textinfo='percent+label')
     st.plotly_chart(fig, use_container_width=True)
+
 
 # --- Statistiques Buts et Passes D ---
 st.subheader("Statistiques Buts & Passes Décisives")
