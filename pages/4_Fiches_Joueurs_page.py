@@ -169,7 +169,6 @@ with col2:
 
 
 
-# --- Statistiques Buts et Passes D ---
 
 
 st.subheader("Statistiques Buts & Passes Décisives")
@@ -191,7 +190,7 @@ if not df_stats_f.empty:
 
     df_buts_passes = pd.DataFrame(data, columns=["Compétition", "Buts", "Passes D"])
 
-    # --- CSS custom pour le style ---
+    # --- CSS pour styliser le tableau ---
     table_style = """
     <style>
     table {
@@ -199,7 +198,6 @@ if not df_stats_f.empty:
         border-collapse: collapse;
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         font-family: "Arial", sans-serif;
         margin-top: 10px;
     }
@@ -207,7 +205,7 @@ if not df_stats_f.empty:
         background-color: #f8f9fa;
     }
     th, td {
-        padding: 10px 16px;
+        padding: 10px 14px;
         text-align: center;
         border-bottom: 1px solid #ddd;
     }
@@ -225,11 +223,12 @@ if not df_stats_f.empty:
     # Conversion en HTML sans index
     table_html = df_buts_passes.to_html(index=False, escape=False)
 
-    # Affichage dans Streamlit avec style appliqué
-    st.markdown(table_style + table_html, unsafe_allow_html=True)
+    # --- Utiliser components pour bien interpréter le HTML ---
+    st.components.v1.html(table_style + table_html, height=400, scrolling=True)
 
 else:
     st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
+
 
 
 
