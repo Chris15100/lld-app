@@ -97,12 +97,83 @@ if not df_stats_f.empty:
         'Nombre matchs amicaux'
     ]
     df_leg = df_stats_f[cols].copy()
+
+    # --- Tableau Markdown ---
     header = "| " + " | ".join(cols) + " |"
     sep = "| " + " | ".join(["---"]*len(cols)) + " |"
-    rows = ["| " + " | ".join(str(int(x)) if isinstance(x,(int,float)) and x==int(x) else str(x) for x in r)+ " |" for r in df_leg.values]
+    rows = [
+        "| " + " | ".join(
+            str(int(x)) if isinstance(x,(int,float)) and x==int(x) else str(x) 
+            for x in r
+        ) + " |" for r in df_leg.values
+    ]
     st.markdown("\n".join([header, sep] + rows))
+
+    # --- Camembert Matchs ---
+    tot = df_leg.sum()
+    labels = ['N3','CDF','Réserve','Amicaux']
+    values = [
+        tot['Nombre matchs N3'],
+        tot['Nombre matchs CDF'],
+        tot['Nombre matchs Réserve'],
+        tot['Nombre matchs amicaux']
+    ]
+    fig = px.pie(
+        names=labels, 
+        values=values, 
+        color_discrete_sequence=px.colors.qualitative.Set2
+    )
+    fig.update_traces(textinfo='percent+label')
+    st.plotly_chart(fig, use_container_width=True)
+
 else:
     st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
+
+# --- Camembert spécifique N3 (avec Hors groupe N3 en colonne) ---
+st.subheader("Répartition des matchs de N3")
+
+if not df_stats_f.empty:
+    tit = int(df_leg['Nombre de Titularisation N3'].sum())
+    entree = int(df_leg['Entrée en jeu N3'].sum())
+    non_entree = int(df_leg['Non entrée en jeu N3'].sum())  # ⚠️ vérifier nom exact de ta colonne
+    hors_groupe = int(df_leg['Hors groupe N3'].sum())
+
+    labels = ["Titularisations", "Entrées en jeu", "Non-entrées en jeu", "Hors groupe"]
+    values = [tit, entree, non_entree, hors_groupe]
+
+    fig = px.pie(
+        names=labels,
+        values=values,
+        color_discrete_sequence=px.colors.qualitative.Set3
+    )
+    fig.update_traces(textinfo='percent+label')
+    st.plotly_chart(fig, use_container_width=True)
+
+# --- Statistiques Buts et Passes D ---
+st.subheader("Statistiques Buts & Passes Décisives")
+
+if not df_stats_f.empty:
+    stats_cols = {
+        "Total": ["Buts Total", "Passes D Total"],
+        "N3": ["Buts N3", "Passes D N3"],
+        "CDF": ["Buts CDF", "Passes D CDF"],
+        "Réserve": ["Buts Réserve", "Passes D Réserve"],
+        "Amicaux": ["Buts Matchs Amicaux", "Passes D Matchs Amicaux"]
+    }
+
+    data = []
+    for comp, cols in stats_cols.items():
+        buts = int(df_stats_f[cols[0]].sum())
+        passes = int(df_stats_f[cols[1]].sum())
+        data.append([comp, buts, passes])
+
+    df_buts_passes = pd.DataFrame(data, columns=["Compétition", "Buts", "Passes D"])
+
+    st.dataframe(df_buts_passes, use_container_width=True)
+
+else:
+    st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
+
 
 # Graphs supplémentaires par type...
 # (similaire aux blocs précédents, en utilisant df_stats_f)
