@@ -189,10 +189,12 @@ if not df_stats_f.empty:
 
     df_buts_passes = pd.DataFrame(data, columns=["Compétition", "Buts", "Passes D"])
 
-    st.dataframe(df_buts_passes, use_container_width=True)
+    # Affichage du tableau sans l’index
+    st.dataframe(df_buts_passes.reset_index(drop=True), use_container_width=True)
 
 else:
     st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
+
 
 
 
