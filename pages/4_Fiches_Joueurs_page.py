@@ -169,14 +169,9 @@ with col2:
 
 
 
-# CSS pour masquer l'index/numéro de ligne dans st.dataframe
-hide_dataframe_row_index = """
-    <style>
-    .row_heading.level0 {display:none}
-    .blank {display:none}
-    </style>
-"""
-st.markdown(hide_dataframe_row_index, unsafe_allow_html=True)
+# --- Statistiques Buts et Passes D ---
+import streamlit as st
+import pandas as pd
 
 st.subheader("Statistiques Buts & Passes Décisives")
 
@@ -197,11 +192,12 @@ if not df_stats_f.empty:
 
     df_buts_passes = pd.DataFrame(data, columns=["Compétition", "Buts", "Passes D"])
 
-    # Tableau interactif sans la colonne d’index
-    st.dataframe(df_buts_passes, use_container_width=True)
+    # Affichage sans numéro de ligne
+    st.markdown(df_buts_passes.to_html(index=False), unsafe_allow_html=True)
 
 else:
     st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
+
 
 
 
