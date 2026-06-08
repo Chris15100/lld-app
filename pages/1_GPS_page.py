@@ -77,13 +77,13 @@ df["HSR Distance"] = (
 
 # =========================================================
 # =========================================================
-# 🟦 TABLEAU INITIAL (BUT + FILTRES)
+# 📊 TABLEAU BRUT FILTRÉ (TON ORIGINAL)
 # =========================================================
 # =========================================================
 
 st.title("📊 GPS Dashboard")
 
-st.subheader("📌 Données brutes filtrées (BUT)")
+st.subheader("📌 Données brutes filtrées")
 
 col1, col2, col3 = st.columns(3)
 
@@ -138,43 +138,43 @@ st.write(f"📊 {len(df_base)} lignes")
 st.dataframe(df_base)
 
 # =========================================================
-# SPR BASE DATA
+# DATA SPLIT PROPRE
 # =========================================================
 
-df_spr = df.copy()
+df_training = df[df["Type"] == "Entrainement"]
+df_match = df[df["MD"] == "M"]
 
 # =========================================================
 # FUNCTIONS
 # =========================================================
 
-def compute_week(df_input, metric):
+def compute_training_week(metric):
     return (
-        df_input.groupby("Nom du joueur")[metric]
+        df_training.groupby("Nom du joueur")[metric]
         .sum()
         .reset_index()
-        .rename(columns={metric: "Week"})
+        .rename(columns={metric: "Training Week"})
     )
 
 
-def compute_top3(metric):
-    df_match = df[df["MD"] == "M"]
-
+def compute_match_top3(metric):
     return (
         df_match.groupby("Nom du joueur")[metric]
         .apply(lambda x: x.nlargest(3).mean())
         .reset_index()
-        .rename(columns={metric: "Top3"})
+        .rename(columns={metric: "Match Top3"})
     )
 
 
-def build_table(df_input, metric, low, high, name):
-    week = compute_week(df_input, metric)
-    top3 = compute_top3(metric)
+def build_table(metric, low, high, name):
+    training = compute_training_week(metric)
+    match = compute_match_top3(metric)
 
-    result = week.merge(top3, on="Nom du joueur", how="left")
+    result = training.merge(match, on="Nom du joueur", how="left")
 
-    result["Top3"] = result["Top3"].replace(0, pd.NA)
-    result["Exposure %"] = (result["Week"] / result["Top3"]) * 100
+    result["Match Top3"] = result["Match Top3"].replace(0, pd.NA)
+
+    result["Exposure %"] = (result["Training Week"] / result["Match Top3"]) * 100
     result["Exposure %"] = result["Exposure %"].round(1)
 
     def status(x):
@@ -184,14 +184,14 @@ def build_table(df_input, metric, low, high, name):
             return "🔴 Sous-exposé"
         if x <= high:
             return "🟢 Optimal"
-        return "🟠 Très élevé"
+        return "🟠 Surcharge"
 
     result["Status"] = result["Exposure %"].apply(status)
 
     return result
 
 # =========================================================
-# METRICS KEYS
+# METRICS
 # =========================================================
 
 SPRINT_COUNT = "# Sprints (>25 km/h)"
@@ -216,14 +216,14 @@ with col1:
 with col2:
     w1 = st.multiselect("Semaines", weeks, default=[max(weeks)], key="w1")
 
-df1 = df.copy()
+df1 = df_training.copy()
 
 if p1:
     df1 = df1[df1["Nom du joueur"].isin(p1)]
 if w1:
     df1 = df1[df1["Semaine"].isin(w1)]
 
-t1 = build_table(df1, SPRINT_COUNT, 90, 120, "Sprint Count")
+t1 = build_table(SPRINT_COUNT, 90, 120, "Sprint Count")
 
 st.dataframe(t1)
 st.plotly_chart(px.bar(t1, x="Nom du joueur", y="Exposure %"), use_container_width=True)
@@ -243,14 +243,14 @@ with col1:
 with col2:
     w2 = st.multiselect("Semaines", weeks, default=[max(weeks)], key="w2")
 
-df2 = df.copy()
+df2 = df_training.copy()
 
 if p2:
     df2 = df2[df2["Nom du joueur"].isin(p2)]
 if w2:
     df2 = df2[df2["Semaine"].isin(w2)]
 
-t2 = build_table(df2, SPRINT_DISTANCE, 80, 120, "Sprint Distance")
+t2 = build_table(SPRINT_DISTANCE, 80, 120, "Sprint Distance")
 
 st.dataframe(t2)
 st.plotly_chart(px.bar(t2, x="Nom du joueur", y="Exposure %"), use_container_width=True)
@@ -270,14 +270,14 @@ with col1:
 with col2:
     w3 = st.multiselect("Semaines", weeks, default=[max(weeks)], key="w3")
 
-df3 = df.copy()
+df3 = df_training.copy()
 
 if p3:
     df3 = df3[df3["Nom du joueur"].isin(p3)]
 if w3:
     df3 = df3[df3["Semaine"].isin(w3)]
 
-t3 = build_table(df3, HSR_DISTANCE, 70, 100, "HSR Distance")
+t3 = build_table(HSR_DISTANCE, 70, 100, "HSR Distance")
 
 st.dataframe(t3)
 st.plotly_chart(px.bar(t3, x="Nom du joueur", y="Exposure %"), use_container_width=True)
