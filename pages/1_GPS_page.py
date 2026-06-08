@@ -3,7 +3,6 @@ import pandas as pd
 import base64
 import os
 import plotly.express as px
-import plotly.graph_objects as go
 
 # =========================================================
 # CONFIG
@@ -57,7 +56,7 @@ df = df.dropna(subset=["Date"])
 df["Semaine"] = df["Date"].dt.isocalendar().week
 
 # =========================================================
-# METRICS CREATION (IMPORTANT)
+# METRICS
 # =========================================================
 
 df["# Sprints (>25 km/h)"] = (
@@ -77,7 +76,75 @@ df["HSR Distance"] = (
 )
 
 # =========================================================
-# FUNCTION CORE
+# =========================================================
+# 🟦 TABLEAU INITIAL (BUT + FILTRES)
+# =========================================================
+# =========================================================
+
+st.title("📊 GPS Dashboard")
+
+st.subheader("📌 Données brutes filtrées (BUT)")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    joueurs = sorted(df["Nom du joueur"].dropna().unique())
+    f_joueur = st.multiselect("Joueur", joueurs)
+
+with col2:
+    types = sorted(df["Type"].dropna().unique())
+    f_type = st.selectbox("Type", [""] + types)
+
+with col3:
+    periodes = sorted(df["Période"].dropna().unique())
+    f_periode = st.selectbox("Période", [""] + periodes)
+
+col4, col5, col6 = st.columns(3)
+
+with col4:
+    md = sorted(df["MD"].dropna().unique())
+    f_md = st.selectbox("MD", [""] + md)
+
+with col5:
+    postes = sorted(df["Poste"].dropna().unique())
+    f_poste = st.selectbox("Poste", [""] + postes)
+
+with col6:
+    dates = sorted(df["Date"].dt.date.unique())
+    f_date = st.selectbox("Date", [""] + [d.strftime("%d/%m/%Y") for d in dates])
+
+df_base = df.copy()
+
+if f_joueur:
+    df_base = df_base[df_base["Nom du joueur"].isin(f_joueur)]
+
+if f_type:
+    df_base = df_base[df_base["Type"] == f_type]
+
+if f_periode:
+    df_base = df_base[df_base["Période"] == f_periode]
+
+if f_md:
+    df_base = df_base[df_base["MD"] == f_md]
+
+if f_poste:
+    df_base = df_base[df_base["Poste"] == f_poste]
+
+if f_date:
+    d = pd.to_datetime(f_date, format="%d/%m/%Y")
+    df_base = df_base[df_base["Date"].dt.date == d.date()]
+
+st.write(f"📊 {len(df_base)} lignes")
+st.dataframe(df_base)
+
+# =========================================================
+# SPR BASE DATA
+# =========================================================
+
+df_spr = df.copy()
+
+# =========================================================
+# FUNCTIONS
 # =========================================================
 
 def compute_week(df_input, metric):
@@ -92,14 +159,12 @@ def compute_week(df_input, metric):
 def compute_top3(metric):
     df_match = df[df["MD"] == "M"]
 
-    top3 = (
+    return (
         df_match.groupby("Nom du joueur")[metric]
         .apply(lambda x: x.nlargest(3).mean())
         .reset_index()
         .rename(columns={metric: "Top3"})
     )
-
-    return top3
 
 
 def build_table(df_input, metric, low, high, name):
@@ -123,18 +188,7 @@ def build_table(df_input, metric, low, high, name):
 
     result["Status"] = result["Exposure %"].apply(status)
 
-    result = result.rename(columns={
-        "Week": f"{name} Week",
-        "Top3": f"Top3 Match {name}"
-    })
-
     return result
-
-# =========================================================
-# UI TITLE
-# =========================================================
-
-st.title("📊 GPS Dashboard")
 
 # =========================================================
 # METRICS KEYS
@@ -148,7 +202,7 @@ players = sorted(df["Nom du joueur"].dropna().unique())
 weeks = sorted(df["Semaine"].dropna().unique())
 
 # =========================================================
-# 1️⃣ SPRINT COUNT
+# 1️⃣ SPR COUNT
 # =========================================================
 
 st.divider()
@@ -157,27 +211,25 @@ st.subheader("1️⃣ Sprint Count")
 col1, col2 = st.columns(2)
 
 with col1:
-    f1_players = st.multiselect("Joueurs", players, key="c1")
+    p1 = st.multiselect("Joueurs", players, key="p1")
 
 with col2:
-    f1_weeks = st.multiselect("Semaines", weeks, default=[max(weeks)], key="c2")
+    w1 = st.multiselect("Semaines", weeks, default=[max(weeks)], key="w1")
 
 df1 = df.copy()
 
-if f1_players:
-    df1 = df1[df1["Nom du joueur"].isin(f1_players)]
-
-if f1_weeks:
-    df1 = df1[df1["Semaine"].isin(f1_weeks)]
+if p1:
+    df1 = df1[df1["Nom du joueur"].isin(p1)]
+if w1:
+    df1 = df1[df1["Semaine"].isin(w1)]
 
 t1 = build_table(df1, SPRINT_COUNT, 90, 120, "Sprint Count")
-st.dataframe(t1)
 
-fig1 = px.bar(t1, x="Nom du joueur", y="Exposure %", text="Exposure %")
-st.plotly_chart(fig1, use_container_width=True)
+st.dataframe(t1)
+st.plotly_chart(px.bar(t1, x="Nom du joueur", y="Exposure %"), use_container_width=True)
 
 # =========================================================
-# 2️⃣ SPRINT DISTANCE
+# 2️⃣ SPR DISTANCE
 # =========================================================
 
 st.divider()
@@ -186,24 +238,22 @@ st.subheader("2️⃣ Sprint Distance")
 col1, col2 = st.columns(2)
 
 with col1:
-    f2_players = st.multiselect("Joueurs", players, key="c3")
+    p2 = st.multiselect("Joueurs", players, key="p2")
 
 with col2:
-    f2_weeks = st.multiselect("Semaines", weeks, default=[max(weeks)], key="c4")
+    w2 = st.multiselect("Semaines", weeks, default=[max(weeks)], key="w2")
 
 df2 = df.copy()
 
-if f2_players:
-    df2 = df2[df2["Nom du joueur"].isin(f2_players)]
-
-if f2_weeks:
-    df2 = df2[df2["Semaine"].isin(f2_weeks)]
+if p2:
+    df2 = df2[df2["Nom du joueur"].isin(p2)]
+if w2:
+    df2 = df2[df2["Semaine"].isin(w2)]
 
 t2 = build_table(df2, SPRINT_DISTANCE, 80, 120, "Sprint Distance")
-st.dataframe(t2)
 
-fig2 = px.bar(t2, x="Nom du joueur", y="Exposure %", text="Exposure %")
-st.plotly_chart(fig2, use_container_width=True)
+st.dataframe(t2)
+st.plotly_chart(px.bar(t2, x="Nom du joueur", y="Exposure %"), use_container_width=True)
 
 # =========================================================
 # 3️⃣ HSR
@@ -215,21 +265,19 @@ st.subheader("3️⃣ HSR Distance")
 col1, col2 = st.columns(2)
 
 with col1:
-    f3_players = st.multiselect("Joueurs", players, key="c5")
+    p3 = st.multiselect("Joueurs", players, key="p3")
 
 with col2:
-    f3_weeks = st.multiselect("Semaines", weeks, default=[max(weeks)], key="c6")
+    w3 = st.multiselect("Semaines", weeks, default=[max(weeks)], key="w3")
 
 df3 = df.copy()
 
-if f3_players:
-    df3 = df3[df3["Nom du joueur"].isin(f3_players)]
-
-if f3_weeks:
-    df3 = df3[df3["Semaine"].isin(f3_weeks)]
+if p3:
+    df3 = df3[df3["Nom du joueur"].isin(p3)]
+if w3:
+    df3 = df3[df3["Semaine"].isin(w3)]
 
 t3 = build_table(df3, HSR_DISTANCE, 70, 100, "HSR Distance")
-st.dataframe(t3)
 
-fig3 = px.bar(t3, x="Nom du joueur", y="Exposure %", text="Exposure %")
-st.plotly_chart(fig3, use_container_width=True)
+st.dataframe(t3)
+st.plotly_chart(px.bar(t3, x="Nom du joueur", y="Exposure %"), use_container_width=True)
