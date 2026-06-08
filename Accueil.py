@@ -76,8 +76,19 @@ st.markdown(html_code, unsafe_allow_html=True)
 
 st.title("GPS Brut")
 
+saison = st.sidebar.selectbox(
+    "📅 Saison",
+    ["2026-2027", "2025-2026"]
+)
+
+st.session_state["saison"] = saison
+
 # CHEMIN RELATIF : place ton fichier Excel dans un dossier 'data' dans ton repo
-data_path = os.path.join("data", "DonneesGPSPropres.xlsx")
+data_path = os.path.join(
+    "data",
+    saison,
+    "DonneesGPSPropres.xlsx"
+)
 
 # Chargement du fichier Excel
 df = pd.read_excel(data_path)
@@ -152,7 +163,9 @@ st.dataframe(df_affichage[colonnes])
 st.title("Wellness/RPE")
 
 # 🔥 Lecture du fichier Excel
-df = pd.read_excel("data/Wellness.xlsx")
+df = pd.read_excel(
+    f"data/{saison}/Wellness.xlsx"
+)
 
 # Conversion explicite de la colonne Date
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce", format="%d/%m/%Y")
@@ -200,3 +213,4 @@ if "Semaine" in df_affichage.columns:
 
 st.subheader(f"Résultats : {len(df_affichage)} lignes")
 st.dataframe(df_affichage)
+

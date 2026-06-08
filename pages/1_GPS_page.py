@@ -3,9 +3,12 @@ import pandas as pd
 import base64
 import os
 
-# ✅ Chemins relatifs (vers ton dépôt GitHub)
-image_path = "images/logo.png"  
-excel_path = "data/DonneesGPSPropres.xlsx"  
+# Saison sélectionnée
+saison = st.session_state.get("saison", "2026-2027")
+
+# Chemins
+image_path = "images/logo.png"
+excel_path = f"data/{saison}/DonneesGPSPropres.xlsx" 
 
 # ✅ Fonction avec vérification
 def get_base64_of_bin_file(bin_file):

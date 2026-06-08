@@ -21,8 +21,12 @@ st.markdown(html_code, unsafe_allow_html=True)
 
 st.title("Fiches Joueurs")
 
+saison = st.session_state.get("saison", "2026-2027")
+
 # Chargement des données
-df_fiche_joueur = pd.read_excel("data/Informations joueurs.xlsx")
+df_fiche_joueur = pd.read_excel(
+    f"data/{saison}/Informations joueurs.xlsx"
+)
 df_fiche_joueur.columns = df_fiche_joueur.columns.str.strip()
 if 'Date de naissance' in df_fiche_joueur.columns:
     df_fiche_joueur['Date de naissance'] = pd.to_datetime(df_fiche_joueur['Date de naissance'], errors='coerce')
@@ -53,7 +57,9 @@ with col2:
             st.write(f"**{col} :** {val}")
 
 # Temps de jeu
-df_stats = pd.read_excel("data/Temps de jeu.xlsx")
+df_stats = pd.read_excel(
+    f"data/{saison}/Temps de jeu.xlsx"
+)
 df_stats.columns = df_stats.columns.str.strip()
 df_stats_f = df_stats[df_stats['Nom du joueur'] == joueur_choisi]
 
@@ -215,7 +221,9 @@ else:
 # (similaire aux blocs précédents, en utilisant df_stats_f)
 
 # Présences entraînements
-df_pres = pd.read_excel("data/Présences.xlsx")
+df_pres = pd.read_excel(
+    f"data/{saison}/Présences.xlsx"
+)
 df_pres.columns = df_pres.columns.str.strip()
 pres_f = df_pres[df_pres['Nom du joueur'] == joueur_choisi]
 st.subheader("Présences Entraînement")
@@ -236,7 +244,9 @@ else:
     st.info("ℹ️ Aucune statistique disponible pour ce joueur.")
 
 # Poids & Masse Grasse
-df_poids = pd.read_excel("data/Poids-Masse grasse.xlsx")
+df_poids = pd.read_excel(
+    f"data/{saison}/Poids-Masse grasse.xlsx"
+)
 df_leg_p = df_poids[df_poids['Nom du joueur'] == joueur_choisi]
 
 if not df_leg_p.empty:

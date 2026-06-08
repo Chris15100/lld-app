@@ -36,9 +36,11 @@ st.markdown(html_code, unsafe_allow_html=True)
 
 st.title("Wellness/RPE")
 
-# 🔥 Lecture du fichier Excel
-df = pd.read_excel("data/Wellness.xlsx")
+# Saison sélectionnée
+saison = st.session_state.get("saison", "2026-2027")
 
+# Lecture du fichier Excel
+df = pd.read_excel(f"data/{saison}/Wellness.xlsx")
 # Conversion explicite de la colonne Date
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce", format="%d/%m/%Y")
 
