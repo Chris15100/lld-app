@@ -10,8 +10,8 @@ import plotly.express as px
 
 saison = st.session_state.get("saison", "2026-2027")
 
-image_path = "images/logo.png"
 excel_path = f"data/{saison}/DonneesGPSPropres.xlsx"
+image_path = "images/logo.png"
 
 # =========================================================
 # LOGO
@@ -42,11 +42,11 @@ if img:
     """, unsafe_allow_html=True)
 
 # =========================================================
-# LOAD DATA
+# DATA LOAD
 # =========================================================
 
 if not os.path.exists(excel_path):
-    st.error(f"Fichier introuvable : {excel_path}")
+    st.error("Fichier introuvable")
     st.stop()
 
 df = pd.read_excel(excel_path)
@@ -56,13 +56,10 @@ df = df.dropna(subset=["Date"])
 df["Semaine"] = df["Date"].dt.isocalendar().week
 
 # =========================================================
-# METRICS
+# METRICS (IMPORTANT : BRUTES)
 # =========================================================
 
-df["# Sprints (>25 km/h)"] = (
-    df["Distance par plage de vitesse (25-30 km/h)"]
-    + df["Distance par plage de vitesse (>30 km/h)"]
-)
+df["Sprint Count"] = df["Nb Sprint 25-30"] + df["Nb Sprint >30"]
 
 df["Sprint Distance"] = (
     df["Distance par plage de vitesse (25-30 km/h)"]
@@ -76,14 +73,12 @@ df["HSR Distance"] = (
 )
 
 # =========================================================
-# =========================================================
-# 📊 TABLEAU BRUT FILTRÉ (TON ORIGINAL)
-# =========================================================
+# 1️⃣ TABLEAU BRUT (FILTRÉ)
 # =========================================================
 
 st.title("📊 GPS Dashboard")
 
-st.subheader("📌 Données brutes filtrées")
+st.subheader("📌 Données brutes")
 
 col1, col2, col3 = st.columns(3)
 
@@ -96,188 +91,111 @@ with col2:
     f_type = st.selectbox("Type", [""] + types)
 
 with col3:
-    periodes = sorted(df["Période"].dropna().unique())
-    f_periode = st.selectbox("Période", [""] + periodes)
-
-col4, col5, col6 = st.columns(3)
-
-with col4:
     md = sorted(df["MD"].dropna().unique())
     f_md = st.selectbox("MD", [""] + md)
 
-with col5:
-    postes = sorted(df["Poste"].dropna().unique())
-    f_poste = st.selectbox("Poste", [""] + postes)
-
-with col6:
-    dates = sorted(df["Date"].dt.date.unique())
-    f_date = st.selectbox("Date", [""] + [d.strftime("%d/%m/%Y") for d in dates])
-
-df_base = df.copy()
+df_raw = df.copy()
 
 if f_joueur:
-    df_base = df_base[df_base["Nom du joueur"].isin(f_joueur)]
+    df_raw = df_raw[df_raw["Nom du joueur"].isin(f_joueur)]
 
 if f_type:
-    df_base = df_base[df_base["Type"] == f_type]
-
-if f_periode:
-    df_base = df_base[df_base["Période"] == f_periode]
+    df_raw = df_raw[df_raw["Type"] == f_type]
 
 if f_md:
-    df_base = df_base[df_base["MD"] == f_md]
+    df_raw = df_raw[df_raw["MD"] == f_md]
 
-if f_poste:
-    df_base = df_base[df_base["Poste"] == f_poste]
-
-if f_date:
-    d = pd.to_datetime(f_date, format="%d/%m/%Y")
-    df_base = df_base[df_base["Date"].dt.date == d.date()]
-
-st.write(f"📊 {len(df_base)} lignes")
-st.dataframe(df_base)
+st.write(f"{len(df_raw)} lignes")
+st.dataframe(df_raw)
 
 # =========================================================
-# DATA SPLIT PROPRE
+# 2️⃣ DATA SPLIT (IMPORTANT)
 # =========================================================
 
 df_training = df[df["Type"] == "Entrainement"]
 df_match = df[df["MD"] == "M"]
 
 # =========================================================
-# FUNCTIONS
+# FUNCTIONS (CORRECTES + FILTRES PRIS EN COMPTE)
 # =========================================================
 
-def compute_training_week(metric):
+def training_week(df_input, metric):
     return (
-        df_training.groupby("Nom du joueur")[metric]
+        df_input.groupby("Nom du joueur")[metric]
         .sum()
-        .reset_index()
-        .rename(columns={metric: "Training Week"})
+        .reset_index(name="Training")
     )
 
-
-def compute_match_top3(metric):
+def match_top3(metric):
     return (
         df_match.groupby("Nom du joueur")[metric]
         .apply(lambda x: x.nlargest(3).mean())
-        .reset_index()
-        .rename(columns={metric: "Match Top3"})
+        .reset_index(name="MatchTop3")
     )
 
+def build(df_input, metric):
+    train = training_week(df_input, metric)
+    match = match_top3(metric)
 
-def build_table(metric, low, high, name):
-    training = compute_training_week(metric)
-    match = compute_match_top3(metric)
+    out = train.merge(match, on="Nom du joueur", how="left")
 
-    result = training.merge(match, on="Nom du joueur", how="left")
+    out["Ratio %"] = (out["Training"] / out["MatchTop3"]) * 100
+    out["Ratio %"] = out["Ratio %"].round(1)
 
-    result["Match Top3"] = result["Match Top3"].replace(0, pd.NA)
-
-    result["Exposure %"] = (result["Training Week"] / result["Match Top3"]) * 100
-    result["Exposure %"] = result["Exposure %"].round(1)
-
-    def status(x):
-        if pd.isna(x):
-            return "⚪ NA"
-        if x < low:
-            return "🔴 Sous-exposé"
-        if x <= high:
-            return "🟢 Optimal"
-        return "🟠 Surcharge"
-
-    result["Status"] = result["Exposure %"].apply(status)
-
-    return result
+    return out
 
 # =========================================================
-# METRICS
-# =========================================================
-
-SPRINT_COUNT = "# Sprints (>25 km/h)"
-SPRINT_DISTANCE = "Sprint Distance"
-HSR_DISTANCE = "HSR Distance"
-
-players = sorted(df["Nom du joueur"].dropna().unique())
-weeks = sorted(df["Semaine"].dropna().unique())
-
-# =========================================================
-# 1️⃣ SPR COUNT
+# FILTRES SPR (IMPORTANT : APPLIQUÉS AVANT CALCUL)
 # =========================================================
 
 st.divider()
-st.subheader("1️⃣ Sprint Count")
+st.subheader("SPR Dashboard")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    p1 = st.multiselect("Joueurs", players, key="p1")
+    players = st.multiselect("Joueurs", sorted(df["Nom du joueur"].unique()))
 
 with col2:
-    w1 = st.multiselect("Semaines", weeks, default=[max(weeks)], key="w1")
+    weeks = st.multiselect("Semaines", sorted(df["Semaine"].unique()))
 
-df1 = df_training.copy()
+df_train_f = df_training.copy()
 
-if p1:
-    df1 = df1[df1["Nom du joueur"].isin(p1)]
-if w1:
-    df1 = df1[df1["Semaine"].isin(w1)]
+if players:
+    df_train_f = df_train_f[df_train_f["Nom du joueur"].isin(players)]
 
-t1 = build_table(SPRINT_COUNT, 90, 120, "Sprint Count")
+if weeks:
+    df_train_f = df_train_f[df_train_f["Semaine"].isin(weeks)]
+
+# =========================================================
+# 1. Sprint Count
+# =========================================================
+
+st.subheader("Sprint Count")
+
+t1 = build(df_train_f, "Sprint Count")
 
 st.dataframe(t1)
-st.plotly_chart(px.bar(t1, x="Nom du joueur", y="Exposure %"), use_container_width=True)
+st.plotly_chart(px.bar(t1, x="Nom du joueur", y="Ratio %"), use_container_width=True)
 
 # =========================================================
-# 2️⃣ SPR DISTANCE
+# 2. Sprint Distance
 # =========================================================
 
-st.divider()
-st.subheader("2️⃣ Sprint Distance")
+st.subheader("Sprint Distance")
 
-col1, col2 = st.columns(2)
-
-with col1:
-    p2 = st.multiselect("Joueurs", players, key="p2")
-
-with col2:
-    w2 = st.multiselect("Semaines", weeks, default=[max(weeks)], key="w2")
-
-df2 = df_training.copy()
-
-if p2:
-    df2 = df2[df2["Nom du joueur"].isin(p2)]
-if w2:
-    df2 = df2[df2["Semaine"].isin(w2)]
-
-t2 = build_table(SPRINT_DISTANCE, 80, 120, "Sprint Distance")
+t2 = build(df_train_f, "Sprint Distance")
 
 st.dataframe(t2)
-st.plotly_chart(px.bar(t2, x="Nom du joueur", y="Exposure %"), use_container_width=True)
+st.plotly_chart(px.bar(t2, x="Nom du joueur", y="Ratio %"), use_container_width=True)
 
 # =========================================================
-# 3️⃣ HSR
+# 3. HSR
 # =========================================================
 
-st.divider()
-st.subheader("3️⃣ HSR Distance")
+st.subheader("HSR Distance")
 
-col1, col2 = st.columns(2)
-
-with col1:
-    p3 = st.multiselect("Joueurs", players, key="p3")
-
-with col2:
-    w3 = st.multiselect("Semaines", weeks, default=[max(weeks)], key="w3")
-
-df3 = df_training.copy()
-
-if p3:
-    df3 = df3[df3["Nom du joueur"].isin(p3)]
-if w3:
-    df3 = df3[df3["Semaine"].isin(w3)]
-
-t3 = build_table(HSR_DISTANCE, 70, 100, "HSR Distance")
+t3 = build(df_train_f, "HSR Distance")
 
 st.dataframe(t3)
-st.plotly_chart(px.bar(t3, x="Nom du joueur", y="Exposure %"), use_container_width=True)
+st.plotly_chart(px.bar(t3, x="Nom du joueur", y="Ratio %"), use_container_width=True)
