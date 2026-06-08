@@ -14,7 +14,7 @@ excel_path = f"data/{saison}/DonneesGPSPropres.xlsx"
 image_path = "images/logo.png"
 
 # =========================================================
-# LOGO
+# UTILS
 # =========================================================
 
 def get_base64(path):
@@ -22,6 +22,15 @@ def get_base64(path):
         return ""
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
+
+def find_col(df, keyword):
+    """Trouve une colonne contenant un mot clé"""
+    cols = [c for c in df.columns if keyword.lower() in c.lower()]
+    return cols[0] if cols else None
+
+# =========================================================
+# LOGO
+# =========================================================
 
 img = get_base64(image_path)
 
@@ -42,7 +51,7 @@ if img:
     """, unsafe_allow_html=True)
 
 # =========================================================
-# DATA LOAD
+# LOAD DATA
 # =========================================================
 
 if not os.path.exists(excel_path):
@@ -56,24 +65,30 @@ df = df.dropna(subset=["Date"])
 df["Semaine"] = df["Date"].dt.isocalendar().week
 
 # =========================================================
-# METRICS (IMPORTANT : BRUTES)
+# AUTO DETECTION COLONNES IMPORTANTES
 # =========================================================
 
-df["Sprint Count"] = df["Nb Sprint 25-30"] + df["Nb Sprint >30"]
-
-df["Sprint Distance"] = (
-    df["Distance par plage de vitesse (25-30 km/h)"]
-    + df["Distance par plage de vitesse (>30 km/h)"]
-)
-
-df["HSR Distance"] = (
-    df["Distance par plage de vitesse (20-25 km/h)"]
-    + df["Distance par plage de vitesse (25-30 km/h)"]
-    + df["Distance par plage de vitesse (>30 km/h)"]
-)
+sprint_col = find_col(df, "sprint")
+accel_col = find_col(df, "accel")
+decel_col = find_col(df, "decel")
 
 # =========================================================
-# 1️⃣ TABLEAU BRUT (FILTRÉ)
+# SAFETY CHECK
+# =========================================================
+
+if sprint_col is None:
+    st.error("Colonne Sprint introuvable dans le fichier")
+    st.stop()
+
+# =========================================================
+# DATA SPLIT
+# =========================================================
+
+df_training = df[df["Type"] == "Entrainement"]
+df_match = df[df["MD"] == "M"]
+
+# =========================================================
+# TABLEAU BRUT (FILTRÉ)
 # =========================================================
 
 st.title("📊 GPS Dashboard")
@@ -109,43 +124,48 @@ st.write(f"{len(df_raw)} lignes")
 st.dataframe(df_raw)
 
 # =========================================================
-# 2️⃣ DATA SPLIT (IMPORTANT)
+# SPR FUNCTIONS
 # =========================================================
 
-df_training = df[df["Type"] == "Entrainement"]
-df_match = df[df["MD"] == "M"]
-
-# =========================================================
-# FUNCTIONS (CORRECTES + FILTRES PRIS EN COMPTE)
-# =========================================================
-
-def training_week(df_input, metric):
+def training_week(df_input, col):
     return (
-        df_input.groupby("Nom du joueur")[metric]
+        df_input.groupby("Nom du joueur")[col]
         .sum()
         .reset_index(name="Training")
     )
 
-def match_top3(metric):
+def match_top3(col):
     return (
-        df_match.groupby("Nom du joueur")[metric]
+        df_match.groupby("Nom du joueur")[col]
         .apply(lambda x: x.nlargest(3).mean())
         .reset_index(name="MatchTop3")
     )
 
-def build(df_input, metric):
-    train = training_week(df_input, metric)
-    match = match_top3(metric)
+def build(df_input, col, low, high):
+    train = training_week(df_input, col)
+    match = match_top3(col)
 
     out = train.merge(match, on="Nom du joueur", how="left")
 
+    out["MatchTop3"] = out["MatchTop3"].replace(0, pd.NA)
     out["Ratio %"] = (out["Training"] / out["MatchTop3"]) * 100
     out["Ratio %"] = out["Ratio %"].round(1)
+
+    def status(x):
+        if pd.isna(x):
+            return "⚪ NA"
+        if x < low:
+            return "🔴 Sous-exposé"
+        if x <= high:
+            return "🟢 Optimal"
+        return "🟠 Surcharge"
+
+    out["Status"] = out["Ratio %"].apply(status)
 
     return out
 
 # =========================================================
-# FILTRES SPR (IMPORTANT : APPLIQUÉS AVANT CALCUL)
+# SPR DASHBOARD FILTERS
 # =========================================================
 
 st.divider()
@@ -168,34 +188,36 @@ if weeks:
     df_train_f = df_train_f[df_train_f["Semaine"].isin(weeks)]
 
 # =========================================================
-# 1. Sprint Count
+# KPI 1 - SPRINT COUNT
 # =========================================================
 
 st.subheader("Sprint Count")
 
-t1 = build(df_train_f, "Sprint Count")
+t1 = build(df_train_f, sprint_col, 90, 120)
 
 st.dataframe(t1)
 st.plotly_chart(px.bar(t1, x="Nom du joueur", y="Ratio %"), use_container_width=True)
 
 # =========================================================
-# 2. Sprint Distance
+# KPI 2 - ACCELERATIONS (si existe)
 # =========================================================
 
-st.subheader("Sprint Distance")
+if accel_col:
+    st.subheader("Accelerations")
 
-t2 = build(df_train_f, "Sprint Distance")
+    t2 = build(df_train_f, accel_col, 80, 120)
 
-st.dataframe(t2)
-st.plotly_chart(px.bar(t2, x="Nom du joueur", y="Ratio %"), use_container_width=True)
+    st.dataframe(t2)
+    st.plotly_chart(px.bar(t2, x="Nom du joueur", y="Ratio %"), use_container_width=True)
 
 # =========================================================
-# 3. HSR
+# KPI 3 - DECELERATIONS (si existe)
 # =========================================================
 
-st.subheader("HSR Distance")
+if decel_col:
+    st.subheader("Decelerations")
 
-t3 = build(df_train_f, "HSR Distance")
+    t3 = build(df_train_f, decel_col, 80, 120)
 
-st.dataframe(t3)
-st.plotly_chart(px.bar(t3, x="Nom du joueur", y="Ratio %"), use_container_width=True)
+    st.dataframe(t3)
+    st.plotly_chart(px.bar(t3, x="Nom du joueur", y="Ratio %"), use_container_width=True)
