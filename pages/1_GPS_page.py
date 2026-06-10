@@ -599,3 +599,360 @@ st.plotly_chart(
     fig3,
     use_container_width=True
 )
+
+# =========================================================
+# =========================================================
+# VMAX EXPOSURE DASHBOARD
+# =========================================================
+# =========================================================
+
+st.divider()
+st.header("⚡ VMAX Exposure Dashboard")
+
+st.markdown("""
+Analyse de l'exposition vitesse maximale :
+
+- >90% VMAX
+- >95% VMAX
+- =100% VMAX
+- >100% VMAX (nouveau record)
+
+⚠️ Les matchs ET entraînements servent à calculer la VMAX historique.
+
+⚠️ Seuls les entraînements de la semaine sont utilisés
+pour mesurer les expositions hebdomadaires.
+""")
+
+# =========================================================
+# DETECTION COLONNE VMAX
+# =========================================================
+
+vmax_col = "Vitesse max"
+
+# =========================================================
+# VMAX HISTORIQUE
+# =========================================================
+
+player_vmax = (
+    df
+    .groupby("Nom du joueur")[vmax_col]
+    .max()
+    .reset_index()
+)
+
+player_vmax.columns = [
+    "Nom du joueur",
+    "VMAX"
+]
+
+# =========================================================
+# FILTERS
+# =========================================================
+
+col1, col2 = st.columns(2)
+
+with col1:
+
+    vmax_players = st.multiselect(
+        "Joueurs",
+        sorted(
+            df["Nom du joueur"]
+            .dropna()
+            .unique()
+        ),
+        key="vmax_players"
+    )
+
+with col2:
+
+    vmax_week_options = (
+        df_training[
+            ["Week Start", "Week Label"]
+        ]
+        .drop_duplicates()
+        .sort_values("Week Start")
+    )
+
+    vmax_weeks = st.multiselect(
+        "Semaines (Lundi)",
+        vmax_week_options["Week Label"].tolist(),
+        default=[
+            vmax_week_options["Week Label"].iloc[-1]
+        ],
+        key="vmax_weeks"
+    )
+
+# =========================================================
+# TRAINING FILTERED
+# =========================================================
+
+df_vmax = df_training.copy()
+
+if vmax_players:
+
+    df_vmax = df_vmax[
+        df_vmax["Nom du joueur"]
+        .isin(vmax_players)
+    ]
+
+if vmax_weeks:
+
+    df_vmax = df_vmax[
+        df_vmax["Week Label"]
+        .isin(vmax_weeks)
+    ]
+
+# =========================================================
+# MERGE VMAX
+# =========================================================
+
+df_vmax = df_vmax.merge(
+    player_vmax,
+    on="Nom du joueur",
+    how="left"
+)
+
+# =========================================================
+# % VMAX
+# =========================================================
+
+df_vmax["%VMAX"] = (
+    df_vmax[vmax_col]
+    / df_vmax["VMAX"]
+) * 100
+
+# =========================================================
+# FLAGS
+# =========================================================
+
+df_vmax["90%+"] = (
+    df_vmax["%VMAX"] >= 90
+)
+
+df_vmax["95%+"] = (
+    df_vmax["%VMAX"] >= 95
+)
+
+df_vmax["100%"] = (
+    df_vmax["%VMAX"] >= 100
+)
+
+df_vmax[">100%"] = (
+    df_vmax["%VMAX"] > 100
+)
+
+# =========================================================
+# DASHBOARD TABLE
+# =========================================================
+
+vmax_dashboard = (
+    df_vmax
+    .groupby("Nom du joueur")
+    .agg(
+
+        VMAX=("VMAX", "max"),
+
+        Max_This_Week=(
+            vmax_col,
+            "max"
+        ),
+
+        Best_Percent=(
+            "%VMAX",
+            "max"
+        ),
+
+        Over90=(
+            "90%+",
+            "sum"
+        ),
+
+        Over95=(
+            "95%+",
+            "sum"
+        ),
+
+        At100=(
+            "100%",
+            "sum"
+        ),
+
+        Over100=(
+            ">100%",
+            "sum"
+        )
+    )
+    .reset_index()
+)
+
+# =========================================================
+# ROUNDING
+# =========================================================
+
+vmax_dashboard["VMAX"] = (
+    vmax_dashboard["VMAX"]
+    .round(2)
+)
+
+vmax_dashboard["Max_This_Week"] = (
+    vmax_dashboard["Max_This_Week"]
+    .round(2)
+)
+
+vmax_dashboard["Best_Percent"] = (
+    vmax_dashboard["Best_Percent"]
+    .round(1)
+)
+
+# =========================================================
+# STATUS
+# =========================================================
+
+def exposure_status(x):
+
+    if x < 90:
+        return "🔴 Sous-exposé"
+
+    if x < 95:
+        return "🟠 Exposition modérée"
+
+    return "🟢 Exposé"
+
+vmax_dashboard["Status"] = (
+    vmax_dashboard["Best_Percent"]
+    .apply(exposure_status)
+)
+
+# =========================================================
+# DISPLAY TABLE
+# =========================================================
+
+st.subheader("📋 Tableau exposition VMAX")
+
+st.dataframe(
+    vmax_dashboard,
+    use_container_width=True
+)
+
+# =========================================================
+# GRAPH 1 - BEST % VMAX
+# =========================================================
+
+st.subheader("📈 Meilleure exposition vitesse")
+
+fig1 = px.bar(
+    vmax_dashboard.sort_values(
+        "Best_Percent",
+        ascending=False
+    ),
+    x="Nom du joueur",
+    y="Best_Percent",
+    text="Best_Percent",
+    color="Best_Percent"
+)
+
+fig1.add_hline(
+    y=90,
+    line_dash="dash"
+)
+
+fig1.add_hline(
+    y=95,
+    line_dash="dash"
+)
+
+fig1.add_hline(
+    y=100,
+    line_dash="dash"
+)
+
+fig1.update_layout(
+    height=500,
+    yaxis_title="% VMAX",
+    xaxis_title=""
+)
+
+st.plotly_chart(
+    fig1,
+    use_container_width=True
+)
+
+# =========================================================
+# GRAPH 2 - EXPOSURE COUNTS
+# =========================================================
+
+st.subheader("📊 Nombre d'expositions vitesse")
+
+counts_melt = vmax_dashboard.melt(
+
+    id_vars=["Nom du joueur"],
+
+    value_vars=[
+        "Over90",
+        "Over95",
+        "At100",
+        "Over100"
+    ],
+
+    var_name="Zone",
+    value_name="Count"
+)
+
+fig2 = px.bar(
+    counts_melt,
+    x="Nom du joueur",
+    y="Count",
+    color="Zone",
+    barmode="group",
+    text="Count"
+)
+
+fig2.update_layout(
+    height=500,
+    yaxis_title="Nombre d'expositions",
+    xaxis_title=""
+)
+
+st.plotly_chart(
+    fig2,
+    use_container_width=True
+)
+
+# =========================================================
+# GRAPH 3 - VMAX VS WEEK MAX
+# =========================================================
+
+st.subheader("⚡ VMAX historique vs semaine")
+
+compare_melt = vmax_dashboard.melt(
+
+    id_vars=["Nom du joueur"],
+
+    value_vars=[
+        "VMAX",
+        "Max_This_Week"
+    ],
+
+    var_name="Type",
+    value_name="Speed"
+)
+
+fig3 = px.bar(
+    compare_melt,
+    x="Nom du joueur",
+    y="Speed",
+    color="Type",
+    barmode="group",
+    text="Speed"
+)
+
+fig3.update_layout(
+    height=500,
+    yaxis_title="km/h",
+    xaxis_title=""
+)
+
+st.plotly_chart(
+    fig3,
+    use_container_width=True
+)
