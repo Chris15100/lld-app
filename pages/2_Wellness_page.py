@@ -129,3 +129,328 @@ else:
     st.info("Aucune donnée correspondant aux filtres.")
 
 
+# =========================================================
+# =========================================================
+# ACUTE / CHRONIC LOAD DASHBOARD (EWMA)
+# =========================================================
+# =========================================================
+
+st.divider()
+st.header("📈 Acute / Chronic Load Dashboard")
+
+st.markdown("""
+Calcul basé sur la charge Wellness.
+
+- Acute = EWMA 7 jours
+- Chronic = EWMA 28 jours
+- ACWR = Acute / Chronic
+
+Zones :
+
+🟦 < 0.80 = Sous-charge
+
+🟩 0.80 - 1.30 = Optimal
+
+🟧 1.30 - 1.50 = Vigilance
+
+🟥 > 1.50 = Spike
+""")
+
+# =========================================================
+# WELLNESS DATA
+# =========================================================
+
+wellness = df_wellness.copy()
+
+wellness["Date"] = pd.to_datetime(
+    wellness["Date"],
+    errors="coerce"
+)
+
+wellness = wellness.dropna(
+    subset=["Date"]
+)
+
+# =========================================================
+# FILTERS
+# =========================================================
+
+col1, col2 = st.columns(2)
+
+with col1:
+
+    joueurs_acwr = st.multiselect(
+        "Joueurs",
+        sorted(
+            wellness["Nom du joueur"]
+            .dropna()
+            .unique()
+        ),
+        key="acwr_players"
+    )
+
+with col2:
+
+    date_ref = st.date_input(
+        "Date de référence",
+        value=wellness["Date"].max(),
+        key="acwr_date"
+    )
+
+# =========================================================
+# FILTER DATA
+# =========================================================
+
+df_acwr = wellness.copy()
+
+if joueurs_acwr:
+
+    df_acwr = df_acwr[
+        df_acwr["Nom du joueur"]
+        .isin(joueurs_acwr)
+    ]
+
+# =========================================================
+# EWMA FUNCTION
+# =========================================================
+
+def compute_acwr(player_df):
+
+    player_df = (
+        player_df
+        .sort_values("Date")
+        .copy()
+    )
+
+    player_df["Acute"] = (
+        player_df["Charge"]
+        .ewm(span=7, adjust=False)
+        .mean()
+    )
+
+    player_df["Chronic"] = (
+        player_df["Charge"]
+        .ewm(span=28, adjust=False)
+        .mean()
+    )
+
+    player_df["ACWR"] = (
+        player_df["Acute"]
+        / player_df["Chronic"]
+    )
+
+    return player_df
+
+# =========================================================
+# CALCULS
+# =========================================================
+
+all_players = []
+
+for joueur in df_acwr["Nom du joueur"].unique():
+
+    temp = df_acwr[
+        df_acwr["Nom du joueur"] == joueur
+    ].copy()
+
+    temp = compute_acwr(temp)
+
+    all_players.append(temp)
+
+acwr_df = pd.concat(
+    all_players,
+    ignore_index=True
+)
+
+# =========================================================
+# DERNIERE VALEUR
+# =========================================================
+
+date_ref = pd.to_datetime(date_ref)
+
+latest = (
+    acwr_df[
+        acwr_df["Date"] <= date_ref
+    ]
+    .sort_values("Date")
+    .groupby("Nom du joueur")
+    .tail(1)
+)
+
+# =========================================================
+# STATUS
+# =========================================================
+
+def status(acwr):
+
+    if pd.isna(acwr):
+        return "⚪"
+
+    if acwr < 0.80:
+        return "🔵 Sous-charge"
+
+    if acwr <= 1.30:
+        return "🟢 Optimal"
+
+    if acwr <= 1.50:
+        return "🟠 Vigilance"
+
+    return "🔴 Spike"
+
+latest["Status"] = (
+    latest["ACWR"]
+    .apply(status)
+)
+
+# =========================================================
+# TABLEAU
+# =========================================================
+
+table_acwr = latest[
+    [
+        "Nom du joueur",
+        "Charge",
+        "Acute",
+        "Chronic",
+        "ACWR",
+        "Status"
+    ]
+].copy()
+
+table_acwr.columns = [
+    "Nom du joueur",
+    "Charge J",
+    "Acute EWMA",
+    "Chronic EWMA",
+    "ACWR",
+    "Status"
+]
+
+table_acwr = table_acwr.round(2)
+
+st.subheader("📋 Tableau ACWR")
+
+st.dataframe(
+    table_acwr,
+    use_container_width=True
+)
+
+# =========================================================
+# GRAPH ACWR
+# =========================================================
+
+st.subheader("📊 ACWR par joueur")
+
+fig = px.bar(
+    table_acwr.sort_values(
+        "ACWR",
+        ascending=False
+    ),
+    x="Nom du joueur",
+    y="ACWR",
+    text="ACWR",
+    color="ACWR"
+)
+
+fig.add_hline(
+    y=0.80,
+    line_dash="dash"
+)
+
+fig.add_hline(
+    y=1.30,
+    line_dash="dash"
+)
+
+fig.add_hline(
+    y=1.50,
+    line_dash="dash"
+)
+
+fig.update_layout(
+    height=500,
+    xaxis_title="",
+    yaxis_title="ACWR"
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+# =========================================================
+# EVOLUTION JOUEUR
+# =========================================================
+
+st.divider()
+
+st.subheader("📈 Evolution individuelle")
+
+joueur_graph = st.selectbox(
+    "Choisir un joueur",
+    sorted(
+        acwr_df["Nom du joueur"]
+        .unique()
+    ),
+    key="acwr_graph"
+)
+
+player_graph = acwr_df[
+    acwr_df["Nom du joueur"] == joueur_graph
+].copy()
+
+fig2 = px.line(
+    player_graph,
+    x="Date",
+    y=[
+        "Acute",
+        "Chronic"
+    ]
+)
+
+fig2.update_layout(
+    height=500,
+    yaxis_title="Charge",
+    xaxis_title=""
+)
+
+st.plotly_chart(
+    fig2,
+    use_container_width=True
+)
+
+# =========================================================
+# EVOLUTION ACWR
+# =========================================================
+
+fig3 = px.line(
+    player_graph,
+    x="Date",
+    y="ACWR"
+)
+
+fig3.add_hline(
+    y=0.80,
+    line_dash="dash"
+)
+
+fig3.add_hline(
+    y=1.30,
+    line_dash="dash"
+)
+
+fig3.add_hline(
+    y=1.50,
+    line_dash="dash"
+)
+
+fig3.update_layout(
+    height=500,
+    yaxis_title="ACWR",
+    xaxis_title=""
+)
+
+st.plotly_chart(
+    fig3,
+    use_container_width=True
+)
