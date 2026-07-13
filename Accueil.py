@@ -4,7 +4,7 @@ import base64
 import os
 
 USERNAME = "coach"
-PASSWORD = "lld6900920252026"
+PASSWORD = "lld20262027"
 
 # Initialisation de la variable session_state 'authenticated'
 if "authenticated" not in st.session_state:
