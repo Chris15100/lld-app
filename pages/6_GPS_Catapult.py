@@ -128,8 +128,13 @@ with col4:
     filtre_md = st.selectbox("MD", [""] + md)
 
 with col5:
-    postes = sorted(df["Poste"].dropna().unique())
-    filtre_poste = st.selectbox("Poste", [""] + postes)
+
+    if "Poste" in df.columns:
+        postes = sorted(df["Poste"].dropna().unique())
+        filtre_poste = st.selectbox("Poste", [""] + postes)
+    else:
+        filtre_poste = ""
+        st.selectbox("Poste", [""], disabled=True)
 
 with col6:
     dates = sorted(df["Date"].dt.date.unique())
