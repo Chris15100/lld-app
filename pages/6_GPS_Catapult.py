@@ -84,13 +84,13 @@ df["Week Label"] = df["Week Start"].dt.strftime("%d/%m/%Y")
 # =========================================================
 
 # Zone 5 (>25.2 km/h)
-df["SPR Distance"] = df["Distance Zone 5"]
+df["SPR Distance"] = df["Distance Zone 5 (km)"] * 1000
 
-# HSR (19.8 km/h et +)
+# HSR = Zone 4 + Zone 5 (19.8 km/h et +)
 df["HSR Distance"] = (
-    df["Distance Zone 4"] +
-    df["Distance Zone 5"]
-)
+    df["Distance Zone 4 (km)"] +
+    df["Distance Zone 5 (km)"]
+) * 1000
 
 # =========================================================
 # SPLIT DATA
